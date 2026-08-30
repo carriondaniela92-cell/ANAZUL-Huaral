@@ -24,7 +24,8 @@ Esta constatación se limita a la evidencia pública localizada. Afirmar jurídi
 
 ## Web pública
 
-- Página principal: https://carriondaniela92-cell.github.io/ANAZUL-Huaral/
+- Sitio informativo de ANAZUL Huaral: https://anazul-huaral.carriondaniela92.chatgpt.site
+- Página de evidencia en GitHub Pages: https://carriondaniela92-cell.github.io/ANAZUL-Huaral/
 - Datos registrales: https://carriondaniela92-cell.github.io/ANAZUL-Huaral/datos-registrales.html
 
 ## Fuentes públicas externas
