@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://carriondaniela92-cell.github.io/ANAZUL-Huaral/sitemap.xml
