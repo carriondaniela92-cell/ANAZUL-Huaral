@@ -1,0 +1,24 @@
+name: Notificar IndexNow
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  notify-indexnow:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Esperar despliegue de GitHub Pages
+        run: sleep 45
+      - name: Notificar página principal
+        run: |
+          curl --fail-with-body --retry 3 --retry-delay 10 \
+            "https://api.indexnow.org/indexnow?url=https%3A%2F%2Fcarriondaniela92-cell.github.io%2FANAZUL-Huaral%2F&key=9b0ae427c65ea21d3432a228907630ec&keyLocation=https%3A%2F%2Fcarriondaniela92-cell.github.io%2FANAZUL-Huaral%2F9b0ae427c65ea21d3432a228907630ec.txt"
+      - name: Notificar ficha registral
+        run: |
+          curl --fail-with-body --retry 3 --retry-delay 10 \
+            "https://api.indexnow.org/indexnow?url=https%3A%2F%2Fcarriondaniela92-cell.github.io%2FANAZUL-Huaral%2Fdatos-registrales.html&key=9b0ae427c65ea21d3432a228907630ec&keyLocation=https%3A%2F%2Fcarriondaniela92-cell.github.io%2FANAZUL-Huaral%2F9b0ae427c65ea21d3432a228907630ec.txt"
