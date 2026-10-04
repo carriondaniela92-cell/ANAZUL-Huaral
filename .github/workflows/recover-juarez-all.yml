@@ -1,0 +1,155 @@
+name: Recover Juarez UNJFSC theses
+
+on:
+  push:
+    branches:
+      - recover-juarez-all
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Recover thesis PDFs from Internet Archive
+        shell: bash
+        run: |
+          set -u
+          mkdir -p recovered
+          python3 - <<'PY'
+          import json, subprocess, pathlib, urllib.parse, re, time
+
+          handles = [
+              "9498","10028","5434","6594","9684","8400",
+              "7829","6398","8452","11545","12026","9839"
+          ]
+          log = pathlib.Path("recovered/recovery_log.txt")
+          log.write_text("", encoding="utf-8")
+
+          def note(s):
+              print(s, flush=True)
+              with log.open("a", encoding="utf-8") as f:
+                  f.write(s+"\n")
+
+          def curl(url, timeout=50):
+              cmd=["curl","-L","--fail","--silent","--show-error",
+                   "--connect-timeout","8","--max-time",str(timeout),
+                   "-A","Mozilla/5.0",url]
+              p=subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+              if p.returncode:
+                  note("curl fail "+str(p.returncode)+" "+url+" "+p.stderr.decode("utf-8","ignore")[:160])
+                  return None
+              return p.stdout
+
+          def validate_pdf(blob):
+              if not blob: return None
+              pos=blob.find(b"%PDF-")
+              if pos < 0: return None
+              pdf=blob[pos:]
+              eof=pdf.rfind(b"%%EOF")
+              if eof >= 0: pdf=pdf[:eof+5]
+              if len(pdf)<80000: return None
+              return pdf
+
+          def ia_records(pattern):
+              q="https://web.archive.org/cdx/search/cdx?"+urllib.parse.urlencode({
+                  "url":pattern,
+                  "output":"json",
+                  "filter":"statuscode:200",
+                  "fl":"timestamp,original,mimetype,statuscode,digest",
+                  "collapse":"digest",
+                  "limit":"300"
+              })
+              data=curl(q,timeout=45)
+              if not data: return []
+              try:
+                  rows=json.loads(data.decode("utf-8","ignore"))
+              except Exception as e:
+                  note("parse fail "+pattern+" "+str(e))
+                  return []
+              if not isinstance(rows,list) or len(rows)<2: return []
+              head=rows[0]
+              return [dict(zip(head,r)) for r in rows[1:]]
+
+          for h in handles:
+              out=pathlib.Path(f"recovered/{h}_TESIS.pdf")
+              out.unlink(missing_ok=True)
+              patterns=[
+                  f"repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/{h}/*",
+                  f"repositorio.unjfsc.edu.pe/bitstream/20.500.14067/{h}/*"
+              ]
+              allrecs=[]
+              for pat in patterns:
+                  recs=ia_records(pat)
+                  note(f"HANDLE {h} pattern {pat} records {len(recs)}")
+                  allrecs.extend(recs)
+
+              # dedupe and rank likely main thesis PDF above turnitin/auth/license/text
+              seen=set(); recs=[]
+              for r in allrecs:
+                  key=(r.get("timestamp"),r.get("original"))
+                  if key in seen: continue
+                  seen.add(key); recs.append(r)
+
+              def rank(r):
+                  u=(r.get("original") or "").lower()
+                  score=0
+                  if ".pdf" in u: score+=100
+                  if "tesis" in u: score+=50
+                  if "repositorio" in u: score+=5
+                  if "turnitin" in u or "turitin" in u: score-=100
+                  if "autoriz" in u: score-=100
+                  if "license" in u or u.endswith(".txt"): score-=200
+                  if "/1/" in u or "sequence=1" in u: score+=25
+                  # newer snapshots first within same score
+                  return (score, r.get("timestamp",""))
+              recs.sort(key=rank, reverse=True)
+
+              recovered=False
+              for r in recs[:30]:
+                  ts=r.get("timestamp"); orig=r.get("original","")
+                  if not ts or not orig: continue
+                  low=orig.lower()
+                  if "turnitin" in low or "turitin" in low or "autoriz" in low or "license" in low:
+                      continue
+                  snap=f"https://web.archive.org/web/{ts}id_/{orig}"
+                  note(f"TRY {h} {ts} {orig}")
+                  blob=curl(snap,timeout=80)
+                  pdf=validate_pdf(blob)
+                  if pdf:
+                      out.write_bytes(pdf)
+                      note(f"SUCCESS {h} bytes={len(pdf)} snapshot={ts} original={orig}")
+                      recovered=True
+                      break
+              if not recovered:
+                  note(f"FAILED {h}")
+              time.sleep(0.3)
+          PY
+
+          echo "Recovered:"
+          find recovered -maxdepth 1 -name '*_TESIS.pdf' -type f -printf '%f %s bytes\n' | sort || true
+          for f in recovered/*_TESIS.pdf; do
+            [ -f "$f" ] || continue
+            echo "=== $f ==="
+            pdfinfo "$f" | grep -E 'Pages:|File size:|PDF version:' || true
+            pdftotext -f 1 -l 5 "$f" - 2>/dev/null | head -35 || true
+          done
+
+      - name: Upload recovered collection
+        uses: actions/upload-artifact@v4
+        with:
+          name: juarez-unjfsc-recovered
+          path: recovered/*
+          retention-days: 2
+
+      - name: Commit recovered collection
+        shell: bash
+        run: |
+          git config user.name "UNJFSC recovery bot"
+          git config user.email "actions@github.com"
+          git add recovered
+          git commit -m "Recovered Juarez-advised UNJFSC theses [skip ci]" || exit 0
+          git push origin HEAD:recover-juarez-all
