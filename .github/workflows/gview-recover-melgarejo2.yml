@@ -1,0 +1,51 @@
+name: GView recover Melgarejo 2
+
+on:
+  push:
+    branches:
+      - gview-recover-melgarejo2
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probe Google viewer with Python
+        shell: bash
+        run: |
+          mkdir -p probe
+          python3 - <<'PY'
+          import urllib.parse, urllib.request, pathlib, re, json, subprocess, os, sys
+          orig='https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/11545/TESIS.pdf?sequence=1'
+          enc=urllib.parse.quote(orig,safe='')
+          urls=[
+            'https://docs.google.com/gview?embedded=true&url='+enc,
+            'https://docs.google.com/viewerng/viewer?embedded=true&url='+enc,
+          ]
+          log=[]
+          for i,u in enumerate(urls,1):
+              log.append('URL '+u)
+              req=urllib.request.Request(u,headers={'User-Agent':'Mozilla/5.0'})
+              try:
+                  with urllib.request.urlopen(req,timeout=60) as r:
+                      data=r.read()
+                      pathlib.Path(f'probe/page{i}.html').write_bytes(data)
+                      log.append(f'status={r.status} type={r.headers.get("content-type")} bytes={len(data)} final={r.geturl()}')
+                      text=data.decode('utf-8','ignore')
+                      pats=re.findall(r'https?://[^"\'<> ]+',text)
+                      for p in sorted(set(pats))[:500]:
+                          if any(k in p.lower() for k in ['googleusercontent','viewer','gview','pdf','download','doc']):
+                              log.append(p)
+              except Exception as e:
+                  log.append('ERR '+repr(e))
+          pathlib.Path('probe/log.txt').write_text('\n'.join(log),encoding='utf-8')
+          print('\n'.join(log))
+          PY
+
+      - name: Upload probe
+        uses: actions/upload-artifact@v4
+        with:
+          name: gview-probe2
+          path: probe/*
+          retention-days: 2
