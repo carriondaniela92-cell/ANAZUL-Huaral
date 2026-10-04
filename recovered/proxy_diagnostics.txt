@@ -1,0 +1,19 @@
+TRY allorigins
+curl: (22) The requested URL returned error: 408
+ http=408 type=text/plain;charset=UTF-8 size=0
+TRY corsproxy
+curl: (22) The requested URL returned error: 401
+ http=401 type=application/json size=0
+TRY codetabs
+curl: (22) The requested URL returned error: 522
+ http=522 type=text/plain; charset=UTF-8 size=0
+TRY allorigins
+curl: (22) The requested URL returned error: 408
+ http=408 type=text/plain;charset=UTF-8 size=0
+TRY corsproxy
+curl: (22) The requested URL returned error: 401
+ http=401 type=application/json size=0
+TRY codetabs
+curl: (22) The requested URL returned error: 522
+ http=522 type=text/plain; charset=UTF-8 size=0
+NO PDF RECOVERED
