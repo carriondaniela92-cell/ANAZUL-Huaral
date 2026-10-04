@@ -1,0 +1,50 @@
+name: Recover UNJFSC Fast
+
+on:
+  push:
+    branches:
+      - recover-unjfsc-fast
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Recover selected PDFs
+        shell: bash
+        run: |
+          mkdir -p recovered
+          tryone () {
+            out="$1"; shift
+            for url in "$@"; do
+              echo "TRY $url"
+              rm -f "recovered/$out"
+              timeout 100s curl --http1.1 -k -L -A "Mozilla/5.0" --connect-timeout 15 --max-time 90 "$url" -o "recovered/$out" || true
+              if [ -s "recovered/$out" ] && head -c 5 "recovered/$out" | grep -q "%PDF-"; then
+                echo "OK $out"
+                return 0
+              fi
+            done
+            rm -f "recovered/$out"
+            echo "FAIL $out"
+          }
+
+          tryone "Vasquez_Pezantes_Prision_Preventiva_2024.pdf"             "https://repositorio.unjfsc.edu.pe/bitstream/20.500.14067/9988/1/TESIS.pdf"             "https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/9988/TESIS.pdf?sequence=1&isAllowed=y"             "http://repositorio.unjfsc.edu.pe/bitstream/20.500.14067/9988/1/TESIS.pdf"
+
+          tryone "Pizarro_Martinez_Trafico_Influencias_2024.pdf"             "https://repositorio.unjfsc.edu.pe/bitstream/20.500.14067/9498/1/TESIS.pdf"             "https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/9498/TESIS.pdf?sequence=1&isAllowed=y"
+
+          tryone "Rimey_Chapeton_Vida_Parientes_2024.pdf"             "https://repositorio.unjfsc.edu.pe/bitstream/20.500.14067/10028/1/TESIS.pdf"             "https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/10028/TESIS.pdf?sequence=1&isAllowed=y"
+
+          tryone "Reyes_Ramirez_Feminicidio_Transexual_2021.pdf"             "https://repositorio.unjfsc.edu.pe/bitstream/20.500.14067/5434/1/JUAN%20MIGUEL%20JUREZ%20MARTINEZ.pdf"             "https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/5434/JUAN%20MIGUEL%20JUREZ%20MARTINEZ.pdf?sequence=1"
+
+          tryone "Altamirano_Sipan_Tolerancia_Corrupcion_2022.pdf"             "https://repositorio.unjfsc.edu.pe/bitstream/20.500.14067/6594/1/TESIS%20ALTAMIRANO%20SIPAN%20ALVARO%20RENAN.pdf"             "https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/6594/TESIS%20ALTAMIRANO%20SIPAN%20ALVARO%20RENAN.pdf?sequence=1&isAllowed=y"
+
+          ls -lh recovered || true
+
+      - name: Upload recovered PDFs
+        uses: actions/upload-artifact@v4
+        with:
+          name: recovered-unjfsc-fast
+          path: recovered/*.pdf
+          if-no-files-found: warn
+          retention-days: 1
