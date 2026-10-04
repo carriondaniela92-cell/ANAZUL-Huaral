@@ -1,0 +1,77 @@
+name: Recover Juarez Extra Downloads
+on:
+  push:
+    branches: [recover-juarez-extra-downloads]
+jobs:
+  recover:
+    strategy:
+      fail-fast: false
+      matrix:
+        handle: ["10834","10632","11543"]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Recover
+        shell: bash
+        run: |
+          set -u
+          H="${{ matrix.handle }}"
+          mkdir -p recovered
+          python3 - "$H" <<'PY'
+          import json, subprocess, pathlib, urllib.parse, sys
+          h=sys.argv[1]
+          out=pathlib.Path(f"recovered/{h}_TESIS.pdf")
+          log=pathlib.Path(f"recovered/{h}_log.txt"); log.write_text("",encoding="utf-8")
+          def note(s):
+              print(s,flush=True)
+              with log.open("a",encoding="utf-8") as f:f.write(s+"\n")
+          def curl(u,t=40):
+              p=subprocess.run(["curl","-L","--fail","--silent","--show-error","--connect-timeout","7","--max-time",str(t),"-A","Mozilla/5.0",u],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+              if p.returncode:return None
+              return p.stdout
+          pats=[f"repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/{h}/*",f"repositorio.unjfsc.edu.pe/bitstream/20.500.14067/{h}/*"]
+          recs=[]
+          for pat in pats:
+              q="https://web.archive.org/cdx/search/cdx?"+urllib.parse.urlencode({"url":pat,"output":"json","filter":"statuscode:200","fl":"timestamp,original,mimetype,statuscode,digest","collapse":"digest","limit":"150"})
+              d=curl(q,30)
+              if not d:continue
+              try:rows=json.loads(d.decode("utf-8","ignore"))
+              except:continue
+              note(f"{pat} records={max(0,len(rows)-1) if isinstance(rows,list) else 0}")
+              if isinstance(rows,list) and len(rows)>1:
+                  head=rows[0]; recs += [dict(zip(head,r)) for r in rows[1:]]
+          seen=set(); u=[]
+          for r in recs:
+              k=(r.get("timestamp"),r.get("original"))
+              if k not in seen: seen.add(k); u.append(r)
+          def score(r):
+              x=urllib.parse.unquote((r.get("original") or "")).lower(); s=0
+              if ".pdf" in x:s+=100
+              if "tesis" in x:s+=70
+              if "sequence=1" in x or "/1/" in x:s+=30
+              if "turnitin" in x or "autoriz" in x:s-=200
+              return (s,r.get("timestamp",""))
+          u.sort(key=score,reverse=True)
+          for r in u[:20]:
+              ts=r.get("timestamp"); orig=r.get("original","")
+              x=urllib.parse.unquote(orig).lower()
+              if not ts or not orig or "turnitin" in x or "autoriz" in x:continue
+              b=curl(f"https://web.archive.org/web/{ts}id_/{orig}",60)
+              if not b:continue
+              p=b.find(b"%PDF-")
+              if p<0:continue
+              pdf=b[p:]; e=pdf.rfind(b"%%EOF")
+              if e>=0:pdf=pdf[:e+5]
+              if len(pdf)>100000:
+                  out.write_bytes(pdf); note(f"SUCCESS bytes={len(pdf)} {orig}"); sys.exit(0)
+          note("FAILED")
+          PY
+          if [ -f "recovered/${H}_TESIS.pdf" ]; then
+            pdfinfo "recovered/${H}_TESIS.pdf" | grep -E 'Pages:|File size:' || true
+            pdftotext -f 1 -l 3 "recovered/${H}_TESIS.pdf" - 2>/dev/null | head -45 || true
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: juarez-extra-${{ matrix.handle }}
+          path: recovered/*
+          retention-days: 2
