@@ -8,10 +8,12 @@ on:
 jobs:
   recover:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 6
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+
       - name: Fetch thesis
         shell: bash
         run: |
@@ -29,7 +31,15 @@ jobs:
           echo "DNS Cloudflare" | tee -a "$LOG"
           dig +short @1.1.1.1 repositorio.unjfsc.edu.pe A 2>&1 | tee -a "$LOG" || true
 
-          ips=$( (dig +short @8.8.8.8 repositorio.unjfsc.edu.pe A; dig +short @1.1.1.1 repositorio.unjfsc.edu.pe A; echo 190.116.38.206) 2>/dev/null | grep -E '^[0-9]+(\.[0-9]+){3}$' | sort -u )
+          ips=$( (
+            dig +short @8.8.8.8 repositorio.unjfsc.edu.pe A
+            dig +short @1.1.1.1 repositorio.unjfsc.edu.pe A
+            echo 190.116.38.206
+            echo 200.48.129.174
+            echo 191.98.186.118
+            echo 190.116.38.7
+            echo 190.116.38.3
+          ) 2>/dev/null | grep -E '^[0-9]+(\.[0-9]+){3}$' | sort -u )
           echo "IPS: $ips" | tee -a "$LOG"
 
           paths=(
@@ -39,31 +49,49 @@ jobs:
 
           for ip in $ips; do
             for path in "${paths[@]}"; do
-              rm -f "$OUT"
-              echo "TRY HTTPS $ip $path" | tee -a "$LOG"
-              timeout 50s curl -4 --http1.1 -k -L -A "Mozilla/5.0"                 --resolve "repositorio.unjfsc.edu.pe:443:$ip"                 --connect-timeout 10 --max-time 45                 "https://repositorio.unjfsc.edu.pe$path" -o "$OUT"                 -w " http=%{http_code} size=%{size_download}\n" 2>>"$LOG" | tee -a "$LOG" || true
-              if [ -s "$OUT" ] && head -c 5 "$OUT" | grep -q "%PDF-"; then
-                echo "SUCCESS HTTPS $ip $path" | tee -a "$LOG"
-                break 2
-              fi
-
-              rm -f "$OUT"
-              echo "TRY HTTP $ip $path" | tee -a "$LOG"
-              timeout 50s curl -4 --http1.1 -L -A "Mozilla/5.0"                 --resolve "repositorio.unjfsc.edu.pe:80:$ip"                 --connect-timeout 10 --max-time 45                 "http://repositorio.unjfsc.edu.pe$path" -o "$OUT"                 -w " http=%{http_code} size=%{size_download}\n" 2>>"$LOG" | tee -a "$LOG" || true
-              if [ -s "$OUT" ] && head -c 5 "$OUT" | grep -q "%PDF-"; then
-                echo "SUCCESS HTTP $ip $path" | tee -a "$LOG"
-                break 2
-              fi
+              for scheme in https http; do
+                rm -f "$OUT"
+                port=443
+                [ "$scheme" = "http" ] && port=80
+                echo "TRY $scheme $ip $path" | tee -a "$LOG"
+                timeout 16s curl -4 --http1.1 -k -L -A "Mozilla/5.0"                   --resolve "repositorio.unjfsc.edu.pe:$port:$ip"                   --connect-timeout 4 --max-time 12                   "$scheme://repositorio.unjfsc.edu.pe$path" -o "$OUT"                   -w " http=%{http_code} size=%{size_download}\n" 2>>"$LOG" | tee -a "$LOG" || true
+                if [ -s "$OUT" ] && head -c 5 "$OUT" | grep -q "%PDF-"; then
+                  echo "SUCCESS $scheme $ip $path" | tee -a "$LOG"
+                  break 3
+                fi
+              done
             done
           done
 
+          if [ ! -s "$OUT" ] || ! head -c 5 "$OUT" | grep -q "%PDF-"; then
+            rm -f "$OUT"
+            for path in "${paths[@]}"; do
+              echo "TRY HTTP8080 190.116.38.206 $path" | tee -a "$LOG"
+              timeout 16s curl -4 -k -L -A "Mozilla/5.0"                 --resolve "repositorio.unjfsc.edu.pe:8080:190.116.38.206"                 --connect-timeout 4 --max-time 12                 "http://repositorio.unjfsc.edu.pe:8080$path" -o "$OUT"                 -w " http=%{http_code} size=%{size_download}\n" 2>>"$LOG" | tee -a "$LOG" || true
+              if [ -s "$OUT" ] && head -c 5 "$OUT" | grep -q "%PDF-"; then
+                echo "SUCCESS HTTP8080 $path" | tee -a "$LOG"
+                break
+              fi
+              rm -f "$OUT"
+            done
+          fi
+
           if [ -s "$OUT" ] && head -c 5 "$OUT" | grep -q "%PDF-"; then
             file "$OUT" | tee -a "$LOG"
+            sha256sum "$OUT" | tee -a "$LOG"
             ls -lh "$OUT" | tee -a "$LOG"
           else
             rm -f "$OUT"
             echo "NO PDF RECOVERED" | tee -a "$LOG"
           fi
+
+      - name: Upload recovery results
+        uses: actions/upload-artifact@v4
+        with:
+          name: unjfsc-9988-recovery
+          path: recovered/*
+          if-no-files-found: error
+          retention-days: 2
 
       - name: Commit results
         shell: bash
@@ -71,5 +99,5 @@ jobs:
           git config user.name "UNJFSC recovery bot"
           git config user.email "actions@github.com"
           git add recovered
-          git commit -m "UNJFSC 9988 recovery attempt [skip ci]" || exit 0
+          git commit -m "UNJFSC 9988 recovery result [skip ci]" || exit 0
           git push origin HEAD:recover-one-9988
