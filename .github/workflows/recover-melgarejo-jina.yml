@@ -1,0 +1,105 @@
+name: Recover Melgarejo via Jina
+
+on:
+  push:
+    branches:
+      - recover-melgarejo-jina
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch cached thesis text
+        shell: bash
+        run: |
+          set -u
+          mkdir -p recovered
+          ORIG='https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/11545/TESIS.pdf?isAllowed=y&sequence=1'
+          for base in             "https://r.jina.ai/http://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/11545/TESIS.pdf?isAllowed=y&sequence=1"             "https://r.jina.ai/https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/11545/TESIS.pdf?isAllowed=y&sequence=1"
+          do
+            echo "TRY $base"
+            curl -L --fail --silent --show-error --connect-timeout 10 --max-time 120               -A 'Mozilla/5.0' "$base" -o recovered/melgarejo.txt || true
+            bytes=$(wc -c < recovered/melgarejo.txt 2>/dev/null || echo 0)
+            echo "bytes=$bytes"
+            head -20 recovered/melgarejo.txt 2>/dev/null || true
+            if [ "$bytes" -gt 50000 ]; then
+              break
+            fi
+          done
+
+      - name: Build readable PDF
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import html, re
+          src=Path('recovered/melgarejo.txt')
+          if not src.exists() or src.stat().st_size < 50000:
+              print('No sufficiently complete text')
+              raise SystemExit(0)
+          text=src.read_text(errors='ignore')
+          # Remove Jina metadata header if present but preserve thesis body.
+          lines=text.splitlines()
+          body=[]
+          started=False
+          for line in lines:
+              if not started and ('Universidad Nacional José Faustino' in line or 'Determinación del alcance punitivo' in line):
+                  started=True
+              if started:
+                  body.append(line)
+          if len(body) < 300:
+              body=lines
+          clean='\n'.join(body)
+          Path('recovered/melgarejo_clean.txt').write_text(clean,encoding='utf-8')
+
+          # Minimal HTML, preserving headings and paragraphs.
+          out=[]
+          for line in clean.splitlines():
+              s=line.strip()
+              if not s:
+                  out.append('<p class="sp">&nbsp;</p>')
+                  continue
+              esc=html.escape(s)
+              if re.match(r'^(CAPÍTULO|CAPITULO|ANEXO|REFERENCIAS|CONCLUSIONES|RECOMENDACIONES)', s, re.I):
+                  out.append(f'<h2>{esc}</h2>')
+              elif re.match(r'^\d+(\.\d+)+\.?\s', s):
+                  out.append(f'<h3>{esc}</h3>')
+              else:
+                  out.append(f'<p>{esc}</p>')
+          html_doc=f'''<!doctype html><html><head><meta charset="utf-8">
+          <style>
+          @page {{ size:A4; margin:2.3cm 2cm; @bottom-center {{content: counter(page); font-size:9pt;}} }}
+          body {{ font-family: "DejaVu Serif", serif; font-size:10.5pt; line-height:1.45; }}
+          h1 {{ text-align:center; font-size:15pt; margin:0 0 16px; }}
+          h2 {{ font-size:13pt; margin-top:22px; page-break-after:avoid; }}
+          h3 {{ font-size:11pt; margin-top:14px; page-break-after:avoid; }}
+          p {{ text-align:justify; margin:0 0 7px; }}
+          .note {{ border:1px solid #999; padding:8px; margin-bottom:18px; font-size:9pt; }}
+          .sp {{ margin:0 0 4px; }}
+          </style></head><body>
+          <div class="note"><b>Versión recuperada de lectura.</b> Generada a partir de una copia textual indexada públicamente del PDF original de la UNJFSC, debido a la caída temporal del servidor institucional. El contenido textual se conserva para consulta; el diseño puede diferir del PDF original.</div>
+          <h1>Determinación del alcance punitivo por colisión en actos de administración pública para garantizar la mínima intervención penal (Huacho, 2024)</h1>
+          {''.join(out)}
+          </body></html>'''
+          Path('recovered/melgarejo.html').write_text(html_doc,encoding='utf-8')
+          PY
+          if [ -f recovered/melgarejo.html ]; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq weasyprint >/dev/null 2>&1 || true
+            if command -v weasyprint >/dev/null; then
+              weasyprint recovered/melgarejo.html recovered/Melgarejo_Vilcarino_2025_Juarez_UNJFSC_RECUPERADO.pdf
+            fi
+          fi
+          ls -lh recovered || true
+
+      - name: Upload result
+        uses: actions/upload-artifact@v4
+        with:
+          name: melgarejo-recovered-pdf
+          path: recovered/*
+          retention-days: 2
