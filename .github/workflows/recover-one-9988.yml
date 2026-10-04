@@ -7,7 +7,6 @@ on:
 
 jobs:
   recover:
-    if: "!contains(github.event.head_commit.message, '[skip ci]')"
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -16,49 +15,61 @@ jobs:
       - name: Fetch thesis
         shell: bash
         run: |
-          set -x
+          set -u
           mkdir -p recovered
           OUT="recovered/Vasquez_Pezantes_Prision_Preventiva_2024.pdf"
+          LOG="recovered/network_diagnostics.txt"
           rm -f "$OUT"
-          urls=(
-            "https://repositorio.unjfsc.edu.pe/bitstream/20.500.14067/9988/1/TESIS.pdf"
-            "https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/9988/TESIS.pdf?sequence=1&isAllowed=y"
-            "http://repositorio.unjfsc.edu.pe/bitstream/20.500.14067/9988/1/TESIS.pdf"
-          )
-          echo "DNS default:"
-          getent ahosts repositorio.unjfsc.edu.pe || true
-          echo "DNS Google:"
-          dig +short @8.8.8.8 repositorio.unjfsc.edu.pe A || true
-          echo "DNS Cloudflare:"
-          dig +short @1.1.1.1 repositorio.unjfsc.edu.pe A || true
+          : > "$LOG"
 
-          for url in "${urls[@]}"; do
-            rm -f "$OUT"
-            timeout 45s curl -4 --http1.1 -k -L -A "Mozilla/5.0 (X11; Linux x86_64)" --connect-timeout 10 --max-time 40 "$url" -o "$OUT" || true
-            if [ -s "$OUT" ] && head -c 5 "$OUT" | grep -q "%PDF-"; then
-              echo "SUCCESS via $url"
-              break
-            fi
+          echo "DNS default" | tee -a "$LOG"
+          getent ahosts repositorio.unjfsc.edu.pe 2>&1 | tee -a "$LOG" || true
+          echo "DNS Google" | tee -a "$LOG"
+          dig +short @8.8.8.8 repositorio.unjfsc.edu.pe A 2>&1 | tee -a "$LOG" || true
+          echo "DNS Cloudflare" | tee -a "$LOG"
+          dig +short @1.1.1.1 repositorio.unjfsc.edu.pe A 2>&1 | tee -a "$LOG" || true
+
+          ips=$( (dig +short @8.8.8.8 repositorio.unjfsc.edu.pe A; dig +short @1.1.1.1 repositorio.unjfsc.edu.pe A; echo 190.116.38.206) 2>/dev/null | grep -E '^[0-9]+(\.[0-9]+){3}$' | sort -u )
+          echo "IPS: $ips" | tee -a "$LOG"
+
+          paths=(
+            "/bitstream/20.500.14067/9988/1/TESIS.pdf"
+            "/bitstream/handle/20.500.14067/9988/TESIS.pdf?sequence=1&isAllowed=y"
+          )
+
+          for ip in $ips; do
+            for path in "${paths[@]}"; do
+              rm -f "$OUT"
+              echo "TRY HTTPS $ip $path" | tee -a "$LOG"
+              timeout 50s curl -4 --http1.1 -k -L -A "Mozilla/5.0"                 --resolve "repositorio.unjfsc.edu.pe:443:$ip"                 --connect-timeout 10 --max-time 45                 "https://repositorio.unjfsc.edu.pe$path" -o "$OUT"                 -w " http=%{http_code} size=%{size_download}\n" 2>>"$LOG" | tee -a "$LOG" || true
+              if [ -s "$OUT" ] && head -c 5 "$OUT" | grep -q "%PDF-"; then
+                echo "SUCCESS HTTPS $ip $path" | tee -a "$LOG"
+                break 2
+              fi
+
+              rm -f "$OUT"
+              echo "TRY HTTP $ip $path" | tee -a "$LOG"
+              timeout 50s curl -4 --http1.1 -L -A "Mozilla/5.0"                 --resolve "repositorio.unjfsc.edu.pe:80:$ip"                 --connect-timeout 10 --max-time 45                 "http://repositorio.unjfsc.edu.pe$path" -o "$OUT"                 -w " http=%{http_code} size=%{size_download}\n" 2>>"$LOG" | tee -a "$LOG" || true
+              if [ -s "$OUT" ] && head -c 5 "$OUT" | grep -q "%PDF-"; then
+                echo "SUCCESS HTTP $ip $path" | tee -a "$LOG"
+                break 2
+              fi
+            done
           done
 
-          if [ ! -s "$OUT" ] || ! head -c 5 "$OUT" | grep -q "%PDF-"; then
+          if [ -s "$OUT" ] && head -c 5 "$OUT" | grep -q "%PDF-"; then
+            file "$OUT" | tee -a "$LOG"
+            ls -lh "$OUT" | tee -a "$LOG"
+          else
             rm -f "$OUT"
-            echo "NO PDF RECOVERED"
-            exit 0
+            echo "NO PDF RECOVERED" | tee -a "$LOG"
           fi
 
-          file "$OUT"
-          ls -lh "$OUT"
-
-      - name: Commit recovered PDF
+      - name: Commit results
         shell: bash
         run: |
-          if [ ! -f recovered/Vasquez_Pezantes_Prision_Preventiva_2024.pdf ]; then
-            echo "Nothing to commit"
-            exit 0
-          fi
           git config user.name "UNJFSC recovery bot"
           git config user.email "actions@github.com"
-          git add recovered/Vasquez_Pezantes_Prision_Preventiva_2024.pdf
-          git commit -m "Recovered UNJFSC thesis 9988 [skip ci]"
+          git add recovered
+          git commit -m "UNJFSC 9988 recovery attempt [skip ci]" || exit 0
           git push origin HEAD:recover-one-9988
