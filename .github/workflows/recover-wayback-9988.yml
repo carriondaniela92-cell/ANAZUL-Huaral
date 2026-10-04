@@ -1,0 +1,79 @@
+name: Recover UNJFSC 9988 Wayback
+
+on:
+  push:
+    branches:
+      - recover-wayback-9988
+
+jobs:
+  recover:
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Recover from archives
+        shell: bash
+        run: |
+          set -u
+          mkdir -p recovered
+          OUT="recovered/Vasquez_Pezantes_Prision_Preventiva_2024.pdf"
+          ORIG="https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/9988/TESIS.pdf?isAllowed=y&sequence=1"
+          BASE="repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/9988/TESIS.pdf*"
+
+          echo "Query Internet Archive CDX"
+          curl -L --fail --max-time 30 -G "https://web.archive.org/cdx/search/cdx"             --data-urlencode "url=$BASE"             --data-urlencode "output=json"             --data-urlencode "filter=statuscode:200"             --data-urlencode "fl=timestamp,original,mimetype,statuscode"             --data-urlencode "collapse=digest"             --data-urlencode "limit=50" -o /tmp/cdx.json || true
+          cat /tmp/cdx.json 2>/dev/null || true
+
+          python3 - <<'PY'
+import json, pathlib, subprocess
+out=pathlib.Path("recovered/Vasquez_Pezantes_Prision_Preventiva_2024.pdf")
+p=pathlib.Path("/tmp/cdx.json")
+rows=[]
+try:
+    data=json.loads(p.read_text())
+    if isinstance(data,list) and len(data)>1:
+        head=data[0]
+        for row in data[1:]:
+            d=dict(zip(head,row))
+            rows.append(d)
+except Exception as e:
+    print("CDX parse:", e)
+print("Snapshots:", len(rows))
+for d in reversed(rows):
+    ts=d.get("timestamp")
+    orig=d.get("original")
+    if not ts or not orig: continue
+    url=f"https://web.archive.org/web/{ts}id_/{orig}"
+    print("Trying archive:", url)
+    try:
+        subprocess.run(["curl","-L","--fail","--max-time","60","-A","Mozilla/5.0",url,"-o",str(out)],check=False)
+        if out.exists() and out.stat().st_size>1000 and out.read_bytes()[:5]==b"%PDF-":
+            print("ARCHIVE SUCCESS", out.stat().st_size)
+            raise SystemExit(0)
+    except Exception as e:
+        print(e)
+    out.unlink(missing_ok=True)
+raise SystemExit(0)
+PY
+
+          if [ -f "$OUT" ]; then
+            file "$OUT"
+            ls -lh "$OUT"
+          else
+            echo "NO ARCHIVED PDF FOUND"
+          fi
+
+      - name: Commit recovered PDF
+        shell: bash
+        run: |
+          if [ ! -f recovered/Vasquez_Pezantes_Prision_Preventiva_2024.pdf ]; then
+            echo "Nothing to commit"
+            exit 0
+          fi
+          git config user.name "UNJFSC recovery bot"
+          git config user.email "actions@github.com"
+          git add recovered/Vasquez_Pezantes_Prision_Preventiva_2024.pdf
+          git commit -m "Recovered UNJFSC thesis 9988 from web archive [skip ci]"
+          git push origin HEAD:recover-wayback-9988
