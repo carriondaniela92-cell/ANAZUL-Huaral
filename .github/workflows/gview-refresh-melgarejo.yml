@@ -1,0 +1,47 @@
+name: GView refresh Melgarejo
+
+on:
+  push:
+    branches:
+      - gview-refresh-melgarejo
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probe refresh endpoint
+        shell: bash
+        run: |
+          mkdir -p probe
+          python3 - <<'PY'
+          import urllib.parse, urllib.request, pathlib, re
+          orig='https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/11545/TESIS.pdf?sequence=1'
+          q=urllib.parse.urlencode({'embedded':'true','url':orig})
+          urls=[
+            'https://docs.google.com/viewerng/standalone/refresh?'+q,
+            'https://docs.google.com/viewerng/text?'+urllib.parse.urlencode({'url':orig}),
+          ]
+          log=[]
+          for i,u in enumerate(urls,1):
+              req=urllib.request.Request(u,headers={'User-Agent':'Mozilla/5.0','Referer':'https://docs.google.com/gview'})
+              try:
+                  with urllib.request.urlopen(req,timeout=60) as r:
+                      data=r.read()
+                      pathlib.Path(f'probe/resp{i}.bin').write_bytes(data)
+                      log.append(f'URL={u}\nstatus={r.status}\ntype={r.headers.get("content-type")}\nbytes={len(data)}\nfinal={r.geturl()}\n')
+                      try:
+                          txt=data.decode('utf-8','ignore')
+                          log.append(txt[:12000])
+                      except: pass
+              except Exception as e:
+                  log.append('ERR '+repr(e))
+          pathlib.Path('probe/log.txt').write_text('\n\n'.join(log),encoding='utf-8')
+          print('\n\n'.join(log))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gview-refresh-probe
+          path: probe/*
+          retention-days: 2
