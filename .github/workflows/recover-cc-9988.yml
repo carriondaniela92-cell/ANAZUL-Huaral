@@ -1,0 +1,109 @@
+name: Recover UNJFSC 9988 CommonCrawl
+
+on:
+  push:
+    branches:
+      - recover-cc-9988
+
+jobs:
+  recover:
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: write
+    steps:
+      - name: Recover from Common Crawl
+        shell: bash
+        run: |
+          set -u
+          mkdir -p recovered
+          python3 - <<'PY'
+import json, subprocess, pathlib, gzip, io, urllib.parse, sys
+
+target = "repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/9988/TESIS.pdf*"
+indexes = [
+"CC-MAIN-2026-39","CC-MAIN-2026-34","CC-MAIN-2026-30","CC-MAIN-2026-25",
+"CC-MAIN-2026-21","CC-MAIN-2026-17","CC-MAIN-2026-12","CC-MAIN-2026-08","CC-MAIN-2026-04",
+"CC-MAIN-2025-51","CC-MAIN-2025-47","CC-MAIN-2025-43","CC-MAIN-2025-38","CC-MAIN-2025-33",
+"CC-MAIN-2025-30","CC-MAIN-2025-26","CC-MAIN-2025-21","CC-MAIN-2025-18","CC-MAIN-2025-13",
+"CC-MAIN-2025-08","CC-MAIN-2025-05","CC-MAIN-2024-51","CC-MAIN-2024-46","CC-MAIN-2024-42"
+]
+out = pathlib.Path("recovered/Vasquez_Pezantes_Prision_Preventiva_2024.pdf")
+def curl_bytes(url, headers=None, timeout=60):
+    cmd=["curl","-L","--fail","--silent","--show-error","--max-time",str(timeout),"-A","Mozilla/5.0"]
+    if headers:
+        for h in headers:
+            cmd += ["-H",h]
+    cmd += [url]
+    p=subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if p.returncode != 0:
+        print("curl failed", url, p.stderr.decode("utf-8","ignore")[:300])
+        return None
+    return p.stdout
+
+for idx in indexes:
+    q = "https://index.commoncrawl.org/%s-index?url=%s&output=json" % (idx, urllib.parse.quote(target, safe=""))
+    print("INDEX", idx)
+    data=curl_bytes(q, timeout=30)
+    if not data:
+        continue
+    lines=data.decode("utf-8","ignore").splitlines()
+    records=[]
+    for ln in lines:
+        try:
+            records.append(json.loads(ln))
+        except Exception:
+            pass
+    print("records", len(records))
+    for rec in reversed(records):
+        fn=rec.get("filename"); off=rec.get("offset"); ln=rec.get("length")
+        if not (fn and off and ln): continue
+        try:
+            start=int(off); length=int(ln); end=start+length-1
+        except: continue
+        warc_url="https://data.commoncrawl.org/"+fn
+        print("RANGE", warc_url, start, end, rec.get("url"), rec.get("mime"), rec.get("status"))
+        raw=curl_bytes(warc_url, headers=[f"Range: bytes={start}-{end}"], timeout=90)
+        if not raw:
+            continue
+        try:
+            dec=gzip.decompress(raw)
+        except Exception as e:
+            print("gzip err", e, "raw", len(raw))
+            continue
+        pos=dec.find(b"%PDF-")
+        if pos < 0:
+            print("no PDF signature; decompressed", len(dec))
+            continue
+        pdf=dec[pos:]
+        # trim possible WARC trailing separator after PDF EOF
+        eof=pdf.rfind(b"%%EOF")
+        if eof >= 0:
+            pdf=pdf[:eof+5]
+        if len(pdf) > 10000 and pdf.startswith(b"%PDF-"):
+            out.write_bytes(pdf)
+            print("SUCCESS", idx, len(pdf))
+            sys.exit(0)
+print("NO COMMON CRAWL PDF")
+sys.exit(0)
+PY
+
+          if [ -f recovered/Vasquez_Pezantes_Prision_Preventiva_2024.pdf ]; then
+            file recovered/Vasquez_Pezantes_Prision_Preventiva_2024.pdf
+            ls -lh recovered/Vasquez_Pezantes_Prision_Preventiva_2024.pdf
+          fi
+
+      - name: Commit recovered PDF
+        shell: bash
+        run: |
+          F="recovered/Vasquez_Pezantes_Prision_Preventiva_2024.pdf"
+          if [ ! -f "$F" ]; then
+            echo "Nothing recovered"
+            exit 0
+          fi
+          git config user.name "UNJFSC recovery bot"
+          git config user.email "actions@github.com"
+          git add "$F"
+          git commit -m "Recovered UNJFSC thesis 9988 via Common Crawl [skip ci]"
+          git push origin HEAD:recover-cc-9988
