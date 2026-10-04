@@ -1,0 +1,57 @@
+name: GView recover Melgarejo
+
+on:
+  push:
+    branches:
+      - gview-recover-melgarejo
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Probe Google viewers
+        shell: bash
+        run: |
+          set -u
+          mkdir -p probe
+          ORIG='https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/11545/TESIS.pdf?sequence=1'
+          ENC=$(python3 -c 'import urllib.parse; print(urllib.parse.quote("'"$ORIG"'", safe=""))')
+          URL1="https://docs.google.com/gview?embedded=true&url=$ENC"
+          URL2="https://docs.google.com/viewerng/viewer?embedded=true&url=$ENC"
+          for u in "$URL1" "$URL2"; do
+            echo "=== $u ===" | tee -a probe/log.txt
+            curl -L -A 'Mozilla/5.0' --connect-timeout 10 --max-time 60 -D probe/headers.txt "$u" -o probe/page.html || true
+            cat probe/headers.txt >> probe/log.txt || true
+            echo "--- URLS ---" >> probe/log.txt
+            grep -Eo 'https?://[^"''' <>]+' probe/page.html | sort -u | head -200 >> probe/log.txt || true
+            echo "--- googleusercontent/docs patterns ---" >> probe/log.txt
+            grep -Eo '[A-Za-z0-9_?&=:/.,%-]*(googleusercontent|viewerng|gview|download|pdf)[A-Za-z0-9_?&=:/.,%-]*' probe/page.html | sort -u | head -400 >> probe/log.txt || true
+            cp probe/page.html "probe/page-$(date +%s%N).html"
+          done
+
+      - name: Try Chrome DOM dump
+        shell: bash
+        run: |
+          ORIG='https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/11545/TESIS.pdf?sequence=1'
+          ENC=$(python3 -c 'import urllib.parse; print(urllib.parse.quote("'"$ORIG"'", safe=""))')
+          U="https://docs.google.com/gview?embedded=true&url=$ENC"
+          if command -v google-chrome >/dev/null; then
+            timeout 90s google-chrome --headless --no-sandbox --disable-gpu --dump-dom "$U" > probe/chrome-dom.html 2>probe/chrome.err || true
+          elif command -v chromium-browser >/dev/null; then
+            timeout 90s chromium-browser --headless --no-sandbox --disable-gpu --dump-dom "$U" > probe/chrome-dom.html 2>probe/chrome.err || true
+          elif command -v chromium >/dev/null; then
+            timeout 90s chromium --headless --no-sandbox --disable-gpu --dump-dom "$U" > probe/chrome-dom.html 2>probe/chrome.err || true
+          fi
+          grep -Eo 'https?://[^"''' <>]+' probe/chrome-dom.html 2>/dev/null | sort -u | head -300 >> probe/log.txt || true
+
+      - name: Upload probe
+        uses: actions/upload-artifact@v4
+        with:
+          name: gview-probe
+          path: probe/*
+          retention-days: 2
