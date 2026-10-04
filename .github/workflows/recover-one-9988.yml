@@ -1,0 +1,64 @@
+name: Recover UNJFSC 9988
+
+on:
+  push:
+    branches:
+      - recover-one-9988
+
+jobs:
+  recover:
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Fetch thesis
+        shell: bash
+        run: |
+          set -x
+          mkdir -p recovered
+          OUT="recovered/Vasquez_Pezantes_Prision_Preventiva_2024.pdf"
+          rm -f "$OUT"
+          urls=(
+            "https://repositorio.unjfsc.edu.pe/bitstream/20.500.14067/9988/1/TESIS.pdf"
+            "https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/9988/TESIS.pdf?sequence=1&isAllowed=y"
+            "http://repositorio.unjfsc.edu.pe/bitstream/20.500.14067/9988/1/TESIS.pdf"
+          )
+          echo "DNS default:"
+          getent ahosts repositorio.unjfsc.edu.pe || true
+          echo "DNS Google:"
+          dig +short @8.8.8.8 repositorio.unjfsc.edu.pe A || true
+          echo "DNS Cloudflare:"
+          dig +short @1.1.1.1 repositorio.unjfsc.edu.pe A || true
+
+          for url in "${urls[@]}"; do
+            rm -f "$OUT"
+            timeout 45s curl -4 --http1.1 -k -L -A "Mozilla/5.0 (X11; Linux x86_64)" --connect-timeout 10 --max-time 40 "$url" -o "$OUT" || true
+            if [ -s "$OUT" ] && head -c 5 "$OUT" | grep -q "%PDF-"; then
+              echo "SUCCESS via $url"
+              break
+            fi
+          done
+
+          if [ ! -s "$OUT" ] || ! head -c 5 "$OUT" | grep -q "%PDF-"; then
+            rm -f "$OUT"
+            echo "NO PDF RECOVERED"
+            exit 0
+          fi
+
+          file "$OUT"
+          ls -lh "$OUT"
+
+      - name: Commit recovered PDF
+        shell: bash
+        run: |
+          if [ ! -f recovered/Vasquez_Pezantes_Prision_Preventiva_2024.pdf ]; then
+            echo "Nothing to commit"
+            exit 0
+          fi
+          git config user.name "UNJFSC recovery bot"
+          git config user.email "actions@github.com"
+          git add recovered/Vasquez_Pezantes_Prision_Preventiva_2024.pdf
+          git commit -m "Recovered UNJFSC thesis 9988 [skip ci]"
+          git push origin HEAD:recover-one-9988
