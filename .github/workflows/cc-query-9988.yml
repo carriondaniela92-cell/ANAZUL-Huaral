@@ -1,0 +1,53 @@
+name: CC query 9988
+
+on:
+  push:
+    branches:
+      - cc-query-9988
+
+jobs:
+  query:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: write
+    steps:
+      - name: Query Common Crawl and recover
+        shell: bash
+        run: |
+          set -e
+          mkdir -p recovered
+          : > recovered/cc_records.txt
+          for idx in CC-MAIN-2026-39 CC-MAIN-2026-34 CC-MAIN-2026-30 CC-MAIN-2026-25 CC-MAIN-2026-21 CC-MAIN-2026-17 CC-MAIN-2026-12 CC-MAIN-2026-08 CC-MAIN-2026-04 CC-MAIN-2025-51 CC-MAIN-2025-47 CC-MAIN-2025-43; do
+            echo "=== $idx ===" >> recovered/cc_records.txt
+            curl -G -L --fail --silent --show-error --connect-timeout 5 --max-time 12               "https://index.commoncrawl.org/$idx-index"               --data-urlencode "url=repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/9988/TESIS.pdf*"               --data-urlencode "output=json" >> recovered/cc_records.txt || true
+            echo >> recovered/cc_records.txt
+          done
+          cat recovered/cc_records.txt
+
+          rec=$(grep -m1 '"filename"' recovered/cc_records.txt || true)
+          if [ -n "$rec" ]; then
+            fn=$(printf '%s' "$rec" | jq -r '.filename')
+            off=$(printf '%s' "$rec" | jq -r '.offset')
+            len=$(printf '%s' "$rec" | jq -r '.length')
+            end=$((off + len - 1))
+            echo "FOUND $fn $off $len"
+            curl -L --fail --silent --show-error --connect-timeout 10 --max-time 90               -H "Range: bytes=$off-$end" "https://data.commoncrawl.org/$fn" -o /tmp/record.gz || true
+            if [ -s /tmp/record.gz ]; then
+              gzip -dc /tmp/record.gz > /tmp/record.bin || true
+              python3 -c 'from pathlib import Path; b=Path("/tmp/record.bin").read_bytes(); p=b.find(b"%PDF-"); e=b.rfind(b"%%EOF"); Path("recovered/Vasquez_Pezantes_Prision_Preventiva_2024.pdf").write_bytes(b[p:e+5]) if p>=0 and e>p else None'
+              if [ -f recovered/Vasquez_Pezantes_Prision_Preventiva_2024.pdf ]; then
+                file recovered/Vasquez_Pezantes_Prision_Preventiva_2024.pdf
+                ls -lh recovered/Vasquez_Pezantes_Prision_Preventiva_2024.pdf
+              fi
+            fi
+          fi
+
+      - name: Commit results
+        shell: bash
+        run: |
+          git config user.name "UNJFSC recovery bot"
+          git config user.email "actions@github.com"
+          git add recovered
+          git commit -m "Common Crawl recovery results [skip ci]" || exit 0
+          git push origin HEAD:cc-query-9988
