@@ -1,0 +1,183 @@
+name: Recover UNJFSC 9988 Archives
+
+on:
+  push:
+    branches:
+      - recover-archives-9988
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Query archives and recover PDF
+        shell: bash
+        run: |
+          set -u
+          mkdir -p recovered
+          OUT="recovered/Vasquez_Pezantes_Prision_Preventiva_2024.pdf"
+          LOG="recovered/archive_diagnostics.txt"
+          : > "$LOG"
+          rm -f "$OUT"
+
+          python3 - <<'PY' 2>&1 | tee -a recovered/archive_diagnostics.txt
+          import json, subprocess, pathlib, gzip, urllib.parse, sys, re
+
+          out = pathlib.Path("recovered/Vasquez_Pezantes_Prision_Preventiva_2024.pdf")
+          urls = [
+              "https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/9988/TESIS.pdf?isAllowed=y&sequence=1",
+              "https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/9988/TESIS.pdf?sequence=1&isAllowed=y",
+              "https://repositorio.unjfsc.edu.pe/bitstream/20.500.14067/9988/1/TESIS.pdf",
+              "http://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/9988/TESIS.pdf?isAllowed=y&sequence=1",
+          ]
+
+          def curl(url, timeout=35, headers=None):
+              cmd=["curl","-L","--fail","--silent","--show-error","--connect-timeout","8","--max-time",str(timeout),"-A","Mozilla/5.0"]
+              if headers:
+                  for h in headers:
+                      cmd += ["-H", h]
+              cmd += [url]
+              p=subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+              if p.returncode:
+                  print("curl fail", p.returncode, url, p.stderr.decode("utf-8","ignore")[:250])
+                  return None
+              return p.stdout
+
+          def save_if_pdf(data, label):
+              if not data:
+                  return False
+              p=data.find(b"%PDF-")
+              if p < 0:
+                  return False
+              pdf=data[p:]
+              eof=pdf.rfind(b"%%EOF")
+              if eof >= 0:
+                  pdf=pdf[:eof+5]
+              if len(pdf) > 100000 and pdf.startswith(b"%PDF-"):
+                  out.write_bytes(pdf)
+                  print("RECOVERED", label, "bytes", len(pdf))
+                  return True
+              return False
+
+          # 1) Internet Archive CDX
+          for original in urls:
+              q="https://web.archive.org/cdx/search/cdx?" + urllib.parse.urlencode({
+                  "url": original,
+                  "output":"json",
+                  "filter":"statuscode:200",
+                  "fl":"timestamp,original,mimetype,statuscode,digest",
+                  "collapse":"digest",
+                  "limit":"100"
+              })
+              data=curl(q, timeout=35)
+              if not data:
+                  continue
+              try:
+                  rows=json.loads(data.decode("utf-8","ignore"))
+              except Exception as e:
+                  print("IA parse error", e)
+                  continue
+              print("IA", original, "rows", max(0,len(rows)-1 if isinstance(rows,list) else 0))
+              if isinstance(rows,list) and len(rows)>1:
+                  head=rows[0]
+                  for row in reversed(rows[1:]):
+                      d=dict(zip(head,row))
+                      ts=d.get("timestamp"); orig=d.get("original")
+                      if not ts or not orig: continue
+                      snap=f"https://web.archive.org/web/{ts}id_/{orig}"
+                      blob=curl(snap, timeout=75)
+                      if save_if_pdf(blob, "InternetArchive "+ts):
+                          sys.exit(0)
+
+          # wildcard IA query to catch query ordering / canonicalization
+          q="https://web.archive.org/cdx/search/cdx?" + urllib.parse.urlencode({
+              "url":"repositorio.unjfsc.edu.pe/bitstream/*9988*",
+              "output":"json","filter":"statuscode:200",
+              "fl":"timestamp,original,mimetype,statuscode,digest",
+              "collapse":"digest","limit":"200"
+          })
+          data=curl(q,timeout=40)
+          if data:
+              try:
+                  rows=json.loads(data.decode("utf-8","ignore"))
+                  print("IA wildcard rows", max(0,len(rows)-1 if isinstance(rows,list) else 0))
+                  if isinstance(rows,list) and len(rows)>1:
+                      head=rows[0]
+                      for row in reversed(rows[1:]):
+                          d=dict(zip(head,row)); ts=d.get("timestamp"); orig=d.get("original")
+                          if ts and orig:
+                              blob=curl(f"https://web.archive.org/web/{ts}id_/{orig}",timeout=75)
+                              if save_if_pdf(blob,"IA wildcard "+ts):
+                                  sys.exit(0)
+              except Exception as e:
+                  print("IA wildcard parse",e)
+
+          # 2) Common Crawl indices
+          indexes=[
+              "CC-MAIN-2026-39","CC-MAIN-2026-34","CC-MAIN-2026-30","CC-MAIN-2026-25",
+              "CC-MAIN-2026-21","CC-MAIN-2026-17","CC-MAIN-2026-12","CC-MAIN-2026-08","CC-MAIN-2026-04",
+              "CC-MAIN-2025-51","CC-MAIN-2025-47","CC-MAIN-2025-43","CC-MAIN-2025-38","CC-MAIN-2025-33",
+              "CC-MAIN-2025-30","CC-MAIN-2025-26","CC-MAIN-2025-21","CC-MAIN-2025-18","CC-MAIN-2025-13",
+              "CC-MAIN-2025-08","CC-MAIN-2025-05","CC-MAIN-2024-51","CC-MAIN-2024-46","CC-MAIN-2024-42",
+              "CC-MAIN-2024-38","CC-MAIN-2024-33","CC-MAIN-2024-30"
+          ]
+          cc_queries=[
+              "repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/9988/TESIS.pdf",
+              "repositorio.unjfsc.edu.pe/bitstream/20.500.14067/9988/1/TESIS.pdf",
+              "repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/9988/*",
+              "repositorio.unjfsc.edu.pe/bitstream/*9988*"
+          ]
+          for idx in indexes:
+              for target in cc_queries:
+                  params={"url":target,"output":"json"}
+                  q="https://index.commoncrawl.org/"+idx+"-index?"+urllib.parse.urlencode(params)
+                  data=curl(q,timeout=22)
+                  if not data: continue
+                  recs=[]
+                  for line in data.decode("utf-8","ignore").splitlines():
+                      try: recs.append(json.loads(line))
+                      except: pass
+                  if recs:
+                      print("CC",idx,target,"records",len(recs))
+                  for rec in reversed(recs):
+                      if str(rec.get("status",""))!="200": continue
+                      fn=rec.get("filename"); off=rec.get("offset"); ln=rec.get("length")
+                      if not(fn and off and ln): continue
+                      start=int(off); length=int(ln); end=start+length-1
+                      raw=curl("https://data.commoncrawl.org/"+fn,timeout=80,headers=[f"Range: bytes={start}-{end}"])
+                      if not raw: continue
+                      try:
+                          dec=gzip.decompress(raw)
+                      except Exception as e:
+                          print("CC gzip",e); continue
+                      if save_if_pdf(dec, f"CommonCrawl {idx}"):
+                          sys.exit(0)
+
+          print("NO ARCHIVED PDF RECOVERED")
+          PY
+
+          if [ -f "$OUT" ]; then
+            file "$OUT" | tee -a "$LOG"
+            ls -lh "$OUT" | tee -a "$LOG"
+            sha256sum "$OUT" | tee -a "$LOG"
+          fi
+
+      - name: Upload archive results
+        uses: actions/upload-artifact@v4
+        with:
+          name: unjfsc-9988-archive-recovery
+          path: recovered/*
+          retention-days: 2
+
+      - name: Commit results
+        shell: bash
+        run: |
+          git config user.name "UNJFSC recovery bot"
+          git config user.email "actions@github.com"
+          git add recovered
+          git commit -m "UNJFSC 9988 archive recovery result [skip ci]" || exit 0
+          git push origin HEAD:recover-archives-9988
