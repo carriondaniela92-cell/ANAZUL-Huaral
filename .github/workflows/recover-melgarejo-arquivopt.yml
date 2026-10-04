@@ -1,0 +1,115 @@
+name: Recover Melgarejo ArquivoPT
+
+on:
+  push:
+    branches:
+      - recover-melgarejo-arquivo
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Query Arquivo.pt
+        shell: bash
+        run: |
+          set -u
+          mkdir -p recovered
+          python3 - <<'PY'
+          import json, subprocess, pathlib, urllib.parse, sys
+          out=pathlib.Path('recovered/Melgarejo_Vilcarino_2025_ArquivoPT.pdf')
+          log=pathlib.Path('recovered/log.txt'); log.write_text('',encoding='utf-8')
+          urls=[
+            'https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/11545/TESIS.pdf?isAllowed=y&sequence=1',
+            'https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/11545/TESIS.pdf?sequence=1',
+            'https://repositorio.unjfsc.edu.pe/bitstream/20.500.14067/11545/1/TESIS.pdf',
+            'http://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/11545/TESIS.pdf?isAllowed=y&sequence=1',
+          ]
+          def note(s):
+              print(s,flush=True)
+              with log.open('a',encoding='utf-8') as f:f.write(s+'\n')
+          def curl(url,timeout=45):
+              p=subprocess.run(['curl','-L','--fail','--silent','--show-error','--connect-timeout','8','--max-time',str(timeout),'-A','Mozilla/5.0',url],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+              if p.returncode:
+                  note('curl fail '+str(p.returncode)+' '+url+' '+p.stderr.decode('utf-8','ignore')[:160]); return None
+              return p.stdout
+          def save_if_pdf(data,label):
+              if not data:return False
+              p=data.find(b'%PDF-')
+              if p<0:return False
+              pdf=data[p:]
+              e=pdf.rfind(b'%%EOF')
+              if e>=0:pdf=pdf[:e+5]
+              if len(pdf)>200000:
+                  out.write_bytes(pdf);note('SUCCESS '+label+' bytes='+str(len(pdf)));return True
+              return False
+
+          for original in urls:
+              api='https://arquivo.pt/textsearch?'+urllib.parse.urlencode({'versionHistory':original,'maxItems':'50'})
+              d=curl(api,45)
+              if not d:continue
+              try:j=json.loads(d.decode('utf-8','ignore'))
+              except Exception as e:
+                  note('parse fail '+repr(e));continue
+              items=j.get('response_items') or j.get('responseItems') or []
+              note(f'History {original} items={len(items)}')
+              for item in items:
+                  note('ITEM '+json.dumps({k:item.get(k) for k in ['timestamp','originalURL','linkToArchive','linkToOriginalFile','mimeType','statusCode']},ensure_ascii=False))
+                  for k in ['linkToOriginalFile','linkToArchive','linkToNoFrame']:
+                      u=item.get(k)
+                      if not u:continue
+                      b=curl(u,75)
+                      if save_if_pdf(b,'Arquivo.pt '+k):
+                          sys.exit(0)
+
+          # CDX prefix search as backup
+          pats=[
+            'repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/11545/*',
+            'repositorio.unjfsc.edu.pe/bitstream/20.500.14067/11545/*'
+          ]
+          for pat in pats:
+              q='https://arquivo.pt/wayback/cdx?'+urllib.parse.urlencode({'url':pat,'matchType':'prefix','output':'json','limit':'500'})
+              d=curl(q,45)
+              if not d:continue
+              txt=d.decode('utf-8','ignore')
+              note('CDX raw first 5000: '+txt[:5000])
+              # Try both JSON object-per-line and arrays
+              recs=[]
+              try:
+                  obj=json.loads(txt)
+                  if isinstance(obj,list):
+                      if obj and isinstance(obj[0],list):
+                          head=obj[0]
+                          recs=[dict(zip(head,r)) for r in obj[1:]]
+                      elif obj and isinstance(obj[0],dict):
+                          recs=obj
+                  elif isinstance(obj,dict):
+                      recs=[obj]
+              except:
+                  for line in txt.splitlines():
+                      try:
+                          o=json.loads(line)
+                          if isinstance(o,dict): recs.append(o)
+                      except: pass
+              note(f'CDX {pat} records={len(recs)}')
+              for r in recs:
+                  u=r.get('url') or r.get('original') or r.get('originalURL')
+                  ts=r.get('timestamp')
+                  mime=(r.get('mime') or r.get('mimetype') or '').lower()
+                  if not u or not ts:continue
+                  if '.pdf' not in u.lower() and 'pdf' not in mime:continue
+                  replay='https://arquivo.pt/wayback/'+str(ts)+'id_/'+u
+                  b=curl(replay,75)
+                  if save_if_pdf(b,'Arquivo.pt CDX'):
+                      sys.exit(0)
+          note('FAILED')
+          PY
+          if [ -f recovered/Melgarejo_Vilcarino_2025_ArquivoPT.pdf ]; then
+            file recovered/Melgarejo_Vilcarino_2025_ArquivoPT.pdf
+            pdfinfo recovered/Melgarejo_Vilcarino_2025_ArquivoPT.pdf | grep -E 'Pages:|File size:' || true
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: melgarejo-arquivopt-recovery
+          path: recovered/*
+          retention-days: 2
