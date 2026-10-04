@@ -1,0 +1,75 @@
+name: Recover UNJFSC PDFs
+
+on:
+  push:
+    branches:
+      - recover-unjfsc-pdfs
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Prepare
+        run: mkdir -p recovered
+
+      - name: Recover PDFs
+        shell: bash
+        run: |
+          set -u
+          fetch_pdf () {
+            name="$1"
+            shift
+            out="recovered/$name"
+            rm -f "$out"
+            for url in "$@"; do
+              echo "Trying: $url"
+              for mode in curl wget; do
+                rm -f "$out"
+                if [ "$mode" = curl ]; then
+                  curl --http1.1 -A "Mozilla/5.0" -L --fail --retry 8 --retry-all-errors --retry-delay 5 --connect-timeout 30 --max-time 480 "$url" -o "$out" || true
+                else
+                  wget --user-agent="Mozilla/5.0" --timeout=60 --tries=5 --max-redirect=20 -O "$out" "$url" || true
+                fi
+                if [ -s "$out" ] && head -c 5 "$out" | grep -q "%PDF-"; then
+                  echo "SUCCESS $name via $mode"
+                  ls -lh "$out"
+                  return 0
+                fi
+              done
+            done
+            echo "FAILED $name"
+            rm -f "$out"
+            return 0
+          }
+
+          fetch_pdf "01_Vasquez_Pezantes_Prision_Preventiva_2024.pdf"             "https://repositorio.unjfsc.edu.pe/bitstream/20.500.14067/9988/1/TESIS.pdf"             "https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/9988/TESIS.pdf?sequence=1&isAllowed=y"
+
+          fetch_pdf "02_Pizarro_Martinez_Trafico_Influencias_2024.pdf"             "https://repositorio.unjfsc.edu.pe/bitstream/20.500.14067/9498/1/TESIS.pdf"             "https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/9498/TESIS.pdf?sequence=1&isAllowed=y"
+
+          fetch_pdf "03_Rimey_Chapeton_Vida_Parientes_2024.pdf"             "https://repositorio.unjfsc.edu.pe/bitstream/20.500.14067/10028/1/TESIS.pdf"             "https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/10028/TESIS.pdf?sequence=1&isAllowed=y"
+
+          fetch_pdf "04_Reyes_Ramirez_Feminicidio_Transexual_2021.pdf"             "https://repositorio.unjfsc.edu.pe/bitstream/20.500.14067/5434/1/JUAN%20MIGUEL%20JUREZ%20MARTINEZ.pdf"             "https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/5434/JUAN%20MIGUEL%20JUREZ%20MARTINEZ.pdf?sequence=1"
+
+          fetch_pdf "05_Altamirano_Sipan_Tolerancia_Corrupcion_2022.pdf"             "https://repositorio.unjfsc.edu.pe/bitstream/20.500.14067/6594/1/TESIS%20ALTAMIRANO%20SIPAN%20ALVARO%20RENAN.pdf"             "https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/6594/TESIS%20ALTAMIRANO%20SIPAN%20ALVARO%20RENAN.pdf?sequence=1&isAllowed=y"
+
+          fetch_pdf "06_Perez_Trinidad_Vargas_Leon_Prision_Preventiva_2023.pdf"             "https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/9684/TESIS.pdf?sequence=5"             "https://repositorio.unjfsc.edu.pe/bitstream/20.500.14067/9684/5/TESIS.pdf"
+
+          fetch_pdf "07_Palacios_Saldana_Control_Posterior_Convenio_Colectivo_2023.pdf"             "https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/8400/TESIS%20-%20PALACIOS%20SALDA%C3%91A%20ERNESTO%20ALONSO-repositorio.pdf?sequence=1"
+
+          fetch_pdf "08_Jara_Depaz_Investigacion_Fiscal_Violencia_Familiar_2023.pdf"             "https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/7829/TESIS%20PAOLA%20JARA%20DEPAZ%20CORREGIDO%20%282%29.pdf?sequence=1&isAllowed=y"
+
+          fetch_pdf "09_Quispe_Sanchez_Criminalidad_Jovenes_2022.pdf"             "https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/6398/QUISPE%20y%20SANCHEZ_compressed.pdf?sequence=1&isAllowed=y"
+
+          fetch_pdf "10_Vasquez_Pezantes_Prision_Preventiva_handle.pdf"             "http://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/9988/TESIS.pdf?sequence=1&isAllowed=y"
+
+          echo "Recovered files:"
+          find recovered -maxdepth 1 -type f -printf "%f %s bytes\n" || true
+
+      - name: Upload recovered PDFs
+        uses: actions/upload-artifact@v4
+        with:
+          name: recovered-unjfsc-pdfs
+          path: recovered/*.pdf
+          if-no-files-found: warn
+          retention-days: 1
