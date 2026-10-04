@@ -1,0 +1,171 @@
+name: Recover More Juarez 2025
+
+on:
+  push:
+    branches:
+      - recover-juarez-2025-more
+
+jobs:
+  recover:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - handle: "10507"
+            filename: "TESIS.pdf"
+          - handle: "12383"
+            filename: "TESIS.pdf"
+          - handle: "11543"
+            filename: "TESIS.pdf"
+          - handle: "10632"
+            filename: "TESIS.pdf"
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Recover one thesis
+        shell: bash
+        run: |
+          set -u
+          H="${{ matrix.handle }}"
+          F="${{ matrix.filename }}"
+          mkdir -p recovered
+          python3 - "$H" "$F" <<'PY'
+          import json, subprocess, pathlib, urllib.parse, sys, gzip
+
+          h=sys.argv[1]; fname=sys.argv[2]
+          out=pathlib.Path(f"recovered/{h}_TESIS.pdf")
+          log=pathlib.Path(f"recovered/{h}_log.txt")
+          log.write_text("",encoding="utf-8")
+
+          def note(s):
+              print(s,flush=True)
+              with log.open("a",encoding="utf-8") as f:f.write(s+"\n")
+
+          def curl(url,timeout=45,headers=None):
+              cmd=["curl","-L","--fail","--silent","--show-error","--connect-timeout","8","--max-time",str(timeout),"-A","Mozilla/5.0"]
+              if headers:
+                  for hh in headers: cmd += ["-H",hh]
+              cmd.append(url)
+              p=subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+              if p.returncode:
+                  note("curl fail "+str(p.returncode)+" "+url+" "+p.stderr.decode("utf-8","ignore")[:130])
+                  return None
+              return p.stdout
+
+          def valid_pdf(blob):
+              if not blob:return None
+              p=blob.find(b"%PDF-")
+              if p<0:return None
+              pdf=blob[p:]
+              e=pdf.rfind(b"%%EOF")
+              if e>=0:pdf=pdf[:e+5]
+              if len(pdf)<80000:return None
+              return pdf
+
+          # Try current server first.
+          direct=[
+              f"https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/{h}/{urllib.parse.quote(fname)}?sequence=1&isAllowed=y",
+              f"https://repositorio.unjfsc.edu.pe/bitstream/20.500.14067/{h}/1/{urllib.parse.quote(fname)}"
+          ]
+          for u in direct:
+              note("DIRECT "+u)
+              b=curl(u,timeout=25)
+              pdf=valid_pdf(b)
+              if pdf:
+                  out.write_bytes(pdf); note(f"SUCCESS DIRECT bytes={len(pdf)}"); sys.exit(0)
+
+          # Internet Archive.
+          pats=[
+              f"repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/{h}/*",
+              f"repositorio.unjfsc.edu.pe/bitstream/20.500.14067/{h}/*"
+          ]
+          recs=[]
+          for pat in pats:
+              q="https://web.archive.org/cdx/search/cdx?"+urllib.parse.urlencode({
+                  "url":pat,"output":"json","filter":"statuscode:200",
+                  "fl":"timestamp,original,mimetype,statuscode,digest",
+                  "collapse":"digest","limit":"200"
+              })
+              d=curl(q,timeout=35)
+              if not d:continue
+              try:rows=json.loads(d.decode("utf-8","ignore"))
+              except Exception as e: note("IA parse "+str(e));continue
+              if isinstance(rows,list) and len(rows)>1:
+                  head=rows[0]
+                  for row in rows[1:]: recs.append(dict(zip(head,row)))
+              note(f"IA {pat} records={max(0,len(rows)-1) if isinstance(rows,list) else 0}")
+
+          seen=set(); uniq=[]
+          for r in recs:
+              k=(r.get("timestamp"),r.get("original"))
+              if k in seen:continue
+              seen.add(k);uniq.append(r)
+
+          def score(r):
+              u=urllib.parse.unquote((r.get("original") or "")).lower()
+              s=0
+              if ".pdf" in u:s+=100
+              if "tesis" in u:s+=70
+              if fname.lower() in u:s+=50
+              if "sequence=1" in u or "/1/" in u:s+=25
+              if "turnitin" in u or "turitin" in u:s-=200
+              if "autoriz" in u:s-=200
+              if "license" in u or u.endswith(".txt"):s-=300
+              return (s,r.get("timestamp",""))
+          uniq.sort(key=score,reverse=True)
+
+          for r in uniq[:30]:
+              ts=r.get("timestamp"); orig=r.get("original","")
+              if not ts or not orig:continue
+              low=urllib.parse.unquote(orig).lower()
+              if "turnitin" in low or "turitin" in low or "autoriz" in low or "license" in low:continue
+              snap=f"https://web.archive.org/web/{ts}id_/{orig}"
+              note("IA TRY "+snap)
+              b=curl(snap,timeout=70)
+              pdf=valid_pdf(b)
+              if pdf:
+                  out.write_bytes(pdf);note(f"SUCCESS IA bytes={len(pdf)}");sys.exit(0)
+
+          # Common Crawl fallback.
+          indexes=["CC-MAIN-2026-39","CC-MAIN-2026-34","CC-MAIN-2026-30","CC-MAIN-2026-25","CC-MAIN-2026-21","CC-MAIN-2026-17","CC-MAIN-2026-12","CC-MAIN-2026-08","CC-MAIN-2026-04","CC-MAIN-2025-51","CC-MAIN-2025-47","CC-MAIN-2025-43","CC-MAIN-2025-38","CC-MAIN-2025-33","CC-MAIN-2025-30"]
+          targets=[f"repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/{h}/*",f"repositorio.unjfsc.edu.pe/bitstream/20.500.14067/{h}/*"]
+          for idx in indexes:
+              for target in targets:
+                  q="https://index.commoncrawl.org/"+idx+"-index?"+urllib.parse.urlencode({"url":target,"output":"json"})
+                  d=curl(q,timeout=18)
+                  if not d:continue
+                  rr=[]
+                  for line in d.decode("utf-8","ignore").splitlines():
+                      try: rr.append(json.loads(line))
+                      except: pass
+                  if rr: note(f"CC {idx} records={len(rr)}")
+                  for rec in rr[:20]:
+                      if str(rec.get("status",""))!="200":continue
+                      u=(rec.get("url") or "").lower()
+                      if "turnitin" in u or "autoriz" in u:continue
+                      fn=rec.get("filename");off=rec.get("offset");ln=rec.get("length")
+                      if not(fn and off and ln):continue
+                      try:start=int(off);length=int(ln);end=start+length-1
+                      except:continue
+                      raw=curl("https://data.commoncrawl.org/"+fn,timeout=75,headers=[f"Range: bytes={start}-{end}"])
+                      if not raw:continue
+                      try:dec=gzip.decompress(raw)
+                      except:continue
+                      pdf=valid_pdf(dec)
+                      if pdf:
+                          out.write_bytes(pdf);note(f"SUCCESS CC {idx} bytes={len(pdf)}");sys.exit(0)
+
+          note("FAILED")
+          PY
+
+          if [ -f "recovered/${H}_TESIS.pdf" ]; then
+            pdfinfo "recovered/${H}_TESIS.pdf" | grep -E 'Pages:|File size:' || true
+            pdftotext -f 1 -l 4 "recovered/${H}_TESIS.pdf" - 2>/dev/null | head -50 || true
+          fi
+
+      - name: Upload result
+        uses: actions/upload-artifact@v4
+        with:
+          name: juarez-more-${{ matrix.handle }}
+          path: recovered/*
+          retention-days: 2
