@@ -1,0 +1,72 @@
+name: Recover UNJFSC 9988 via proxies
+
+on:
+  push:
+    branches:
+      - recover-proxy-9988
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch through public relays
+        shell: bash
+        run: |
+          set -u
+          mkdir -p recovered
+          OUT="recovered/Vasquez_Pezantes_Prision_Preventiva_2024.pdf"
+          LOG="recovered/proxy_diagnostics.txt"
+          : > "$LOG"
+          ORIG1="https://repositorio.unjfsc.edu.pe/bitstream/20.500.14067/9988/1/TESIS.pdf"
+          ORIG2="https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/9988/TESIS.pdf?sequence=1&isAllowed=y"
+
+          try_url () {
+            label="$1"
+            url="$2"
+            echo "TRY $label" | tee -a "$LOG"
+            rm -f "$OUT"
+            timeout 45s curl -L --fail --silent --show-error -A "Mozilla/5.0"               --connect-timeout 8 --max-time 40 "$url" -o "$OUT"               -w " http=%{http_code} type=%{content_type} size=%{size_download}\n" 2>>"$LOG" | tee -a "$LOG" || true
+            if [ -s "$OUT" ] && head -c 5 "$OUT" | grep -q "%PDF-"; then
+              echo "SUCCESS $label" | tee -a "$LOG"
+              return 0
+            fi
+            rm -f "$OUT"
+            return 1
+          }
+
+          for orig in "$ORIG1" "$ORIG2"; do
+            enc=$(python3 -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$orig")
+            try_url "allorigins" "https://api.allorigins.win/raw?url=$enc" && break
+            try_url "corsproxy" "https://corsproxy.io/?url=$enc" && break
+            try_url "codetabs" "https://api.codetabs.com/v1/proxy?quest=$enc" && break
+          done
+
+          if [ -s "$OUT" ] && head -c 5 "$OUT" | grep -q "%PDF-"; then
+            file "$OUT" | tee -a "$LOG"
+            sha256sum "$OUT" | tee -a "$LOG"
+            ls -lh "$OUT" | tee -a "$LOG"
+          else
+            rm -f "$OUT"
+            echo "NO PDF RECOVERED" | tee -a "$LOG"
+          fi
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: unjfsc-9988-proxy-recovery
+          path: recovered/*
+          retention-days: 2
+
+      - name: Commit results
+        shell: bash
+        run: |
+          git config user.name "UNJFSC recovery bot"
+          git config user.email "actions@github.com"
+          git add recovered
+          git commit -m "UNJFSC 9988 proxy recovery result [skip ci]" || exit 0
+          git push origin HEAD:recover-proxy-9988
