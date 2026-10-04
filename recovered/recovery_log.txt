@@ -1,0 +1,45 @@
+HANDLE 9498 pattern repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/9498/* records 0
+HANDLE 9498 pattern repositorio.unjfsc.edu.pe/bitstream/20.500.14067/9498/* records 0
+FAILED 9498
+HANDLE 10028 pattern repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/10028/* records 1
+HANDLE 10028 pattern repositorio.unjfsc.edu.pe/bitstream/20.500.14067/10028/* records 0
+TRY 10028 20260915063606 https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/10028/TESIS.pdf;jsessionid=6BF26A4B136CFF5CE2ABD1341EF80C30?sequence=1
+SUCCESS 10028 bytes=1641458 snapshot=20260915063606 original=https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/10028/TESIS.pdf;jsessionid=6BF26A4B136CFF5CE2ABD1341EF80C30?sequence=1
+HANDLE 5434 pattern repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/5434/* records 1
+HANDLE 5434 pattern repositorio.unjfsc.edu.pe/bitstream/20.500.14067/5434/* records 0
+TRY 5434 20250523051836 https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/5434/JUAN%20MIGUEL%20JUREZ%20MARTINEZ.pdf
+SUCCESS 5434 bytes=641849 snapshot=20250523051836 original=https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/5434/JUAN%20MIGUEL%20JUREZ%20MARTINEZ.pdf
+HANDLE 6594 pattern repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/6594/* records 1
+HANDLE 6594 pattern repositorio.unjfsc.edu.pe/bitstream/20.500.14067/6594/* records 0
+TRY 6594 20260125065533 https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/6594/TESIS%20ALTAMIRANO%20SIPAN%20ALVARO%20RENAN.pdf
+SUCCESS 6594 bytes=1568236 snapshot=20260125065533 original=https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/6594/TESIS%20ALTAMIRANO%20SIPAN%20ALVARO%20RENAN.pdf
+HANDLE 9684 pattern repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/9684/* records 1
+HANDLE 9684 pattern repositorio.unjfsc.edu.pe/bitstream/20.500.14067/9684/* records 0
+TRY 9684 20260915080217 https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/9684/Tesis%20Perez%20Trinidad-Vargas%20Leon.pdf?sequence=5&isAllowed=y
+SUCCESS 9684 bytes=1194931 snapshot=20260915080217 original=https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/9684/Tesis%20Perez%20Trinidad-Vargas%20Leon.pdf?sequence=5&isAllowed=y
+HANDLE 8400 pattern repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/8400/* records 1
+HANDLE 8400 pattern repositorio.unjfsc.edu.pe/bitstream/20.500.14067/8400/* records 0
+TRY 8400 20260915065751 https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/8400/TESIS%20-%20PALACIOS%20SALDA%c3%91A%20ERNESTO%20ALONSO-repositorio.pdf?isAllowed=y&sequence=1
+SUCCESS 8400 bytes=2098103 snapshot=20260915065751 original=https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/8400/TESIS%20-%20PALACIOS%20SALDA%c3%91A%20ERNESTO%20ALONSO-repositorio.pdf?isAllowed=y&sequence=1
+HANDLE 7829 pattern repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/7829/* records 1
+HANDLE 7829 pattern repositorio.unjfsc.edu.pe/bitstream/20.500.14067/7829/* records 0
+TRY 7829 20250526232029 https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/7829/TESIS%20PAOLA%20JARA%20DEPAZ%20CORREGIDO%20(2).pdf
+SUCCESS 7829 bytes=1259612 snapshot=20250526232029 original=https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/7829/TESIS%20PAOLA%20JARA%20DEPAZ%20CORREGIDO%20(2).pdf
+HANDLE 6398 pattern repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/6398/* records 1
+HANDLE 6398 pattern repositorio.unjfsc.edu.pe/bitstream/20.500.14067/6398/* records 0
+TRY 6398 20260915065102 https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/6398/QUISPE%20y%20SANCHEZ_compressed.pdf?isAllowed=y&sequence=1
+SUCCESS 6398 bytes=582965 snapshot=20260915065102 original=https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/6398/QUISPE%20y%20SANCHEZ_compressed.pdf?isAllowed=y&sequence=1
+HANDLE 8452 pattern repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/8452/* records 1
+HANDLE 8452 pattern repositorio.unjfsc.edu.pe/bitstream/20.500.14067/8452/* records 0
+TRY 8452 20260915065813 https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/8452/TESIS%20-%20AR%c3%89VALO%20ANDRADE%20RA%c3%9aL%20SOCRATE%20VANDERSAR%20Y%20MAGUI%c3%91A%20TRUJILLO%20KEVIN.pdf?sequence=1&isAllowed=y
+SUCCESS 8452 bytes=1964896 snapshot=20260915065813 original=https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/8452/TESIS%20-%20AR%c3%89VALO%20ANDRADE%20RA%c3%9aL%20SOCRATE%20VANDERSAR%20Y%20MAGUI%c3%91A%20TRUJILLO%20KEVIN.pdf?sequence=1&isAllowed=y
+HANDLE 11545 pattern repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/11545/* records 0
+HANDLE 11545 pattern repositorio.unjfsc.edu.pe/bitstream/20.500.14067/11545/* records 0
+FAILED 11545
+HANDLE 12026 pattern repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/12026/* records 0
+HANDLE 12026 pattern repositorio.unjfsc.edu.pe/bitstream/20.500.14067/12026/* records 0
+FAILED 12026
+HANDLE 9839 pattern repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/9839/* records 1
+HANDLE 9839 pattern repositorio.unjfsc.edu.pe/bitstream/20.500.14067/9839/* records 0
+TRY 9839 20260915070618 https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/9839/TESIS.pdf;jsessionid=B17E17A59F56D6391B9B031349EE8440?sequence=1
+SUCCESS 9839 bytes=826994 snapshot=20260915070618 original=https://repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/9839/TESIS.pdf;jsessionid=B17E17A59F56D6391B9B031349EE8440?sequence=1
