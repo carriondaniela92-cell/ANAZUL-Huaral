@@ -1,0 +1,165 @@
+DNS default
+190.116.38.200  STREAM repositorio.unjfsc.edu.pe
+190.116.38.200  DGRAM  
+190.116.38.200  RAW    
+DNS Google
+190.116.38.200
+DNS Cloudflare
+190.116.38.200
+IPS: 190.116.38.200
+190.116.38.206
+190.116.38.3
+190.116.38.7
+191.98.186.118
+200.48.129.174
+TRY https 190.116.38.200 /bitstream/20.500.14067/9988/1/TESIS.pdf
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:03 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:04 --:--:--     0
+curl: (28) SSL connection timeout
+ http=000 size=0
+TRY http 190.116.38.200 /bitstream/20.500.14067/9988/1/TESIS.pdf
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:03 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:04 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:05 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:06 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:07 --:--:--     0100   390  100   390    0     0     54      0  0:00:07  0:00:07 --:--:--    97
+ http=503 size=390
+TRY https 190.116.38.200 /bitstream/handle/20.500.14067/9988/TESIS.pdf?sequence=1&isAllowed=y
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:03 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:04 --:--:--     0
+curl: (28) SSL connection timeout
+ http=000 size=0
+TRY http 190.116.38.200 /bitstream/handle/20.500.14067/9988/TESIS.pdf?sequence=1&isAllowed=y
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:03 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:04 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:05 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:06 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:07 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:08 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:09 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:10 --:--:--     0100   390  100   390    0     0     35      0  0:00:11  0:00:10  0:00:01    78100   390  100   390    0     0     35      0  0:00:11  0:00:10  0:00:01    97
+ http=503 size=390
+TRY https 190.116.38.206 /bitstream/20.500.14067/9988/1/TESIS.pdf
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0100 91995    0 91995    0     0  62745      0 --:--:--  0:00:01 --:--:-- 62752
+ http=404 size=91995
+TRY http 190.116.38.206 /bitstream/20.500.14067/9988/1/TESIS.pdf
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100 13842    0 13842    0     0  12622      0 --:--:--  0:00:01 --:--:-- 12629100 53826    0 53826    0     0  41291      0 --:--:--  0:00:01 --:--:-- 41277100 91943    0 91943    0     0  70490      0 --:--:--  0:00:01 --:--:-- 70454
+ http=404 size=91943
+TRY https 190.116.38.206 /bitstream/handle/20.500.14067/9988/TESIS.pdf?sequence=1&isAllowed=y
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0100 91995    0 91995    0     0  62353      0 --:--:--  0:00:01 --:--:-- 62369
+ http=404 size=91995
+TRY http 190.116.38.206 /bitstream/handle/20.500.14067/9988/TESIS.pdf?sequence=1&isAllowed=y
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100 13842    0 13842    0     0  12817      0 --:--:--  0:00:01 --:--:-- 12828100 91943    0 91943    0     0  71404      0 --:--:--  0:00:01 --:--:-- 71439
+ http=404 size=91943
+TRY https 190.116.38.3 /bitstream/20.500.14067/9988/1/TESIS.pdf
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:03 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:04 --:--:--     0
+curl: (28) Failed to connect to repositorio.unjfsc.edu.pe port 443 after 4002 ms: Timeout was reached
+ http=000 size=0
+TRY http 190.116.38.3 /bitstream/20.500.14067/9988/1/TESIS.pdf
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:03 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:04 --:--:--     0
+curl: (28) Failed to connect to repositorio.unjfsc.edu.pe port 80 after 4002 ms: Timeout was reached
+ http=000 size=0
+TRY https 190.116.38.3 /bitstream/handle/20.500.14067/9988/TESIS.pdf?sequence=1&isAllowed=y
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:03 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:04 --:--:--     0
+curl: (28) Failed to connect to repositorio.unjfsc.edu.pe port 443 after 4002 ms: Timeout was reached
+ http=000 size=0
+TRY http 190.116.38.3 /bitstream/handle/20.500.14067/9988/TESIS.pdf?sequence=1&isAllowed=y
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:03 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:04 --:--:--     0
+curl: (28) Failed to connect to repositorio.unjfsc.edu.pe port 80 after 4002 ms: Timeout was reached
+ http=000 size=0
+TRY https 190.116.38.7 /bitstream/20.500.14067/9988/1/TESIS.pdf
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:03 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:04 --:--:--     0
+curl: (28) Failed to connect to repositorio.unjfsc.edu.pe port 443 after 4002 ms: Timeout was reached
+ http=000 size=0
+TRY http 190.116.38.7 /bitstream/20.500.14067/9988/1/TESIS.pdf
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:03 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:04 --:--:--     0
+curl: (28) Failed to connect to repositorio.unjfsc.edu.pe port 80 after 4002 ms: Timeout was reached
+ http=000 size=0
+TRY https 190.116.38.7 /bitstream/handle/20.500.14067/9988/TESIS.pdf?sequence=1&isAllowed=y
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:03 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:04 --:--:--     0
+curl: (28) Failed to connect to repositorio.unjfsc.edu.pe port 443 after 4002 ms: Timeout was reached
+ http=000 size=0
+TRY http 190.116.38.7 /bitstream/handle/20.500.14067/9988/TESIS.pdf?sequence=1&isAllowed=y
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:03 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:04 --:--:--     0
+curl: (28) Failed to connect to repositorio.unjfsc.edu.pe port 80 after 4002 ms: Timeout was reached
+ http=000 size=0
+TRY https 191.98.186.118 /bitstream/20.500.14067/9988/1/TESIS.pdf
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:03 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:04 --:--:--     0
+curl: (28) Failed to connect to repositorio.unjfsc.edu.pe port 443 after 4002 ms: Timeout was reached
+ http=000 size=0
+TRY http 191.98.186.118 /bitstream/20.500.14067/9988/1/TESIS.pdf
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:03 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:04 --:--:--     0
+curl: (28) Failed to connect to repositorio.unjfsc.edu.pe port 80 after 4002 ms: Timeout was reached
+ http=000 size=0
+TRY https 191.98.186.118 /bitstream/handle/20.500.14067/9988/TESIS.pdf?sequence=1&isAllowed=y
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:03 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:04 --:--:--     0
+curl: (28) Failed to connect to repositorio.unjfsc.edu.pe port 443 after 4002 ms: Timeout was reached
+ http=000 size=0
+TRY http 191.98.186.118 /bitstream/handle/20.500.14067/9988/TESIS.pdf?sequence=1&isAllowed=y
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:03 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:04 --:--:--     0
+curl: (28) Failed to connect to repositorio.unjfsc.edu.pe port 80 after 4002 ms: Timeout was reached
+ http=000 size=0
+TRY https 200.48.129.174 /bitstream/20.500.14067/9988/1/TESIS.pdf
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:03 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:04 --:--:--     0
+curl: (28) Failed to connect to repositorio.unjfsc.edu.pe port 443 after 4002 ms: Timeout was reached
+ http=000 size=0
+TRY http 200.48.129.174 /bitstream/20.500.14067/9988/1/TESIS.pdf
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:03 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:04 --:--:--     0
+curl: (28) Failed to connect to repositorio.unjfsc.edu.pe port 80 after 4002 ms: Timeout was reached
+ http=000 size=0
+TRY https 200.48.129.174 /bitstream/handle/20.500.14067/9988/TESIS.pdf?sequence=1&isAllowed=y
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:03 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:04 --:--:--     0
+curl: (28) Failed to connect to repositorio.unjfsc.edu.pe port 443 after 4002 ms: Timeout was reached
+ http=000 size=0
+TRY http 200.48.129.174 /bitstream/handle/20.500.14067/9988/TESIS.pdf?sequence=1&isAllowed=y
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:03 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:04 --:--:--     0
+curl: (28) Failed to connect to repositorio.unjfsc.edu.pe port 80 after 4002 ms: Timeout was reached
+ http=000 size=0
+TRY HTTP8080 190.116.38.206 /bitstream/20.500.14067/9988/1/TESIS.pdf
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:03 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:04 --:--:--     0
+curl: (28) Failed to connect to repositorio.unjfsc.edu.pe port 8080 after 4002 ms: Timeout was reached
+ http=000 size=0
+TRY HTTP8080 190.116.38.206 /bitstream/handle/20.500.14067/9988/TESIS.pdf?sequence=1&isAllowed=y
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:03 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:04 --:--:--     0
+curl: (28) Failed to connect to repositorio.unjfsc.edu.pe port 8080 after 4002 ms: Timeout was reached
+ http=000 size=0
+NO PDF RECOVERED
