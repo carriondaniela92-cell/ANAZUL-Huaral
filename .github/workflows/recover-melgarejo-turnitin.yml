@@ -1,0 +1,136 @@
+name: Recover Melgarejo Turnitin
+
+on:
+  push:
+    branches:
+      - recover-melgarejo-turnitin
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Recover archived TURNITIN PDF
+        shell: bash
+        run: |
+          set -u
+          mkdir -p recovered
+          python3 - <<'PY'
+          import json, subprocess, pathlib, urllib.parse, gzip, sys
+          h='11545'
+          out=pathlib.Path('recovered/Melgarejo_Vilcarino_2025_TURNITIN_COMPLETO.pdf')
+          log=pathlib.Path('recovered/log.txt'); log.write_text('',encoding='utf-8')
+          def note(s):
+              print(s,flush=True)
+              with log.open('a',encoding='utf-8') as f:f.write(s+'\n')
+          def curl(url,timeout=45,headers=None):
+              cmd=['curl','-L','--fail','--silent','--show-error','--connect-timeout','8','--max-time',str(timeout),'-A','Mozilla/5.0']
+              if headers:
+                  for hh in headers: cmd += ['-H',hh]
+              cmd.append(url)
+              p=subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+              if p.returncode:
+                  note('curl fail '+str(p.returncode)+' '+url+' '+p.stderr.decode('utf-8','ignore')[:120])
+                  return None
+              return p.stdout
+          def valid(blob):
+              if not blob:return None
+              p=blob.find(b'%PDF-')
+              if p<0:return None
+              pdf=blob[p:]
+              e=pdf.rfind(b'%%EOF')
+              if e>=0:pdf=pdf[:e+5]
+              return pdf if len(pdf)>200000 else None
+
+          # Internet Archive exact/wildcards, prioritizing turnitin and sequence 2.
+          patterns=[
+              f'repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/{h}/TURNITIN.pdf*',
+              f'repositorio.unjfsc.edu.pe/bitstream/20.500.14067/{h}/2/*',
+              f'repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/{h}/*'
+          ]
+          recs=[]
+          for pat in patterns:
+              q='https://web.archive.org/cdx/search/cdx?'+urllib.parse.urlencode({
+                  'url':pat,'output':'json','filter':'statuscode:200',
+                  'fl':'timestamp,original,mimetype,statuscode,digest',
+                  'collapse':'digest','limit':'300'
+              })
+              d=curl(q,35)
+              if not d:continue
+              try: rows=json.loads(d.decode('utf-8','ignore'))
+              except Exception as e: note('IA parse '+str(e));continue
+              n=max(0,len(rows)-1) if isinstance(rows,list) else 0
+              note(f'IA {pat} records={n}')
+              if isinstance(rows,list) and len(rows)>1:
+                  head=rows[0]
+                  for row in rows[1:]: recs.append(dict(zip(head,row)))
+          seen=set(); uniq=[]
+          for r in recs:
+              k=(r.get('timestamp'),r.get('original'))
+              if k in seen:continue
+              seen.add(k);uniq.append(r)
+          def score(r):
+              u=urllib.parse.unquote((r.get('original') or '')).lower()
+              s=0
+              if 'turnitin' in u:s+=200
+              if 'sequence=2' in u or '/2/' in u:s+=100
+              if '.pdf' in u:s+=50
+              if 'autoriz' in u:s-=300
+              return (s,r.get('timestamp',''))
+          uniq.sort(key=score,reverse=True)
+          for r in uniq[:40]:
+              ts=r.get('timestamp'); orig=r.get('original','')
+              if not ts or not orig:continue
+              low=urllib.parse.unquote(orig).lower()
+              if 'autoriz' in low:continue
+              note('TRY IA '+ts+' '+orig)
+              b=curl(f'https://web.archive.org/web/{ts}id_/{orig}',75)
+              pdf=valid(b)
+              if pdf:
+                  out.write_bytes(pdf); note(f'SUCCESS IA bytes={len(pdf)}'); sys.exit(0)
+
+          # Common Crawl fallback, DO include turnitin.
+          indexes=['CC-MAIN-2026-39','CC-MAIN-2026-34','CC-MAIN-2026-30','CC-MAIN-2026-25','CC-MAIN-2026-21','CC-MAIN-2026-17','CC-MAIN-2026-12','CC-MAIN-2026-08','CC-MAIN-2026-04','CC-MAIN-2025-51','CC-MAIN-2025-47','CC-MAIN-2025-43','CC-MAIN-2025-38','CC-MAIN-2025-33','CC-MAIN-2025-30','CC-MAIN-2025-26']
+          targets=[
+              f'repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/{h}/TURNITIN.pdf*',
+              f'repositorio.unjfsc.edu.pe/bitstream/20.500.14067/{h}/2/*',
+              f'repositorio.unjfsc.edu.pe/bitstream/handle/20.500.14067/{h}/*'
+          ]
+          for idx in indexes:
+              for target in targets:
+                  q='https://index.commoncrawl.org/'+idx+'-index?'+urllib.parse.urlencode({'url':target,'output':'json'})
+                  d=curl(q,18)
+                  if not d:continue
+                  rr=[]
+                  for line in d.decode('utf-8','ignore').splitlines():
+                      try:rr.append(json.loads(line))
+                      except:pass
+                  if rr:note(f'CC {idx} {target} records={len(rr)}')
+                  rr.sort(key=lambda r: (1 if 'turnitin' in urllib.parse.unquote((r.get('url') or '')).lower() else 0, 1 if str(r.get('status',''))=='200' else 0),reverse=True)
+                  for rec in rr[:30]:
+                      if str(rec.get('status',''))!='200':continue
+                      u=urllib.parse.unquote((rec.get('url') or '')).lower()
+                      if 'autoriz' in u:continue
+                      fn=rec.get('filename');off=rec.get('offset');ln=rec.get('length')
+                      if not(fn and off and ln):continue
+                      try:start=int(off);length=int(ln);end=start+length-1
+                      except:continue
+                      raw=curl('https://data.commoncrawl.org/'+fn,75,[f'Range: bytes={start}-{end}'])
+                      if not raw:continue
+                      try:dec=gzip.decompress(raw)
+                      except:continue
+                      pdf=valid(dec)
+                      if pdf:
+                          out.write_bytes(pdf);note(f'SUCCESS CC {idx} bytes={len(pdf)}');sys.exit(0)
+          note('FAILED')
+          PY
+          if [ -f recovered/Melgarejo_Vilcarino_2025_TURNITIN_COMPLETO.pdf ]; then
+            file recovered/Melgarejo_Vilcarino_2025_TURNITIN_COMPLETO.pdf
+            pdfinfo recovered/Melgarejo_Vilcarino_2025_TURNITIN_COMPLETO.pdf | grep -E 'Pages:|File size:' || true
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: melgarejo-turnitin-recovery
+          path: recovered/*
+          retention-days: 2
